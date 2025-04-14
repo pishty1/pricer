@@ -4,31 +4,66 @@
 package org.example;
 
 public class App {
-    public String getGreeting() {
-        return "Hello World!";
-    }
-
-
+    /**
+     * Prices a European call option using a simple Monte Carlo simulation.
+     *
+     * The simulation estimates the expected payoff E[max(ST - K, 0)] under the risk-neutral measure,
+     * where ST is the stock price at expiry T, and K is the strike price.
+     * The final price is obtained by discounting this expectation back to time 0: Price = e^(-rT) * E[max(ST - K, 0)].
+     *
+     * The stock price ST is simulated using the solution to the geometric Brownian motion SDE under risk-neutral measure:
+     * ST = S0 * exp((r - 0.5 * sigma^2) * T + sigma * sqrt(T) * Z), where Z is a standard normal random variable (N(0,1)).
+     *
+     * @param expiry     Time to expiry (T)
+     * @param strike     Strike price (K)
+     * @param spot       Initial stock price (S0)
+     * @param vol        Volatility (sigma)
+     * @param r          Risk-free interest rate
+     * @param numPaths   Number of simulation paths
+     * @return The estimated price of the European call option.
+     */
     public double simpleMonteCarlo1(double expiry, double strike, double spot, double vol, double r, long numPaths) {
+        // Pre-calculate constant values to improve performance inside the loop.
+        // variance = sigma^2 * T
         var variance = vol * vol * expiry;
+        // rootVariance = sqrt(sigma^2 * T) = sigma * sqrt(T)
         var rootVariance = Math.sqrt(variance);
+        // itoCorrection = (r - 0.5 * sigma^2) * T
+        // We split the exponential term for clarity and potential reuse:
+        // movedSpot incorporates the drift part: S0 * exp((r - 0.5 * sigma^2) * T)
         var itoCorrection = -0.5 * variance;
-
         var movedSpot = spot * Math.exp(r * expiry + itoCorrection);
-        var thisSpot = 0.0;
-        var runningSum = 0.0;
 
+        var thisSpot = 0.0; // Stores the simulated spot price at expiry for each path
+        var runningSum = 0.0; // Accumulates the payoffs for all paths
+
+        // Monte Carlo simulation loop
         for (int i = 0; i < numPaths; i++) {
-            double thisGaussian = Random1.getGaussianBySummation();
+            // Generate a standard normal random variable Z ~ N(0,1)
+            // Note: The C++ example used Box-Muller, here we use Summation. Both approximate N(0,1).
+            double thisGaussian = Random1.getGaussianByBoxMuller();
+
+            // Simulate the spot price at expiry ST using the precalculated values and the random Gaussian variable
+            // ST = movedSpot * exp(rootVariance * Z)
             thisSpot = movedSpot * Math.exp(rootVariance * thisGaussian);
+
+            // Calculate the payoff for this path: max(ST - K, 0)
             double thisPayoff = Math.max(thisSpot - strike, 0);
+
+            // Add the payoff to the running sum
             runningSum += thisPayoff;
         }
-        var thisMean = runningSum / numPaths;
-        thisMean *= Math.exp(-r * expiry);
-        return thisMean;
+
+        // Calculate the average payoff across all paths (estimate of the expectation E[payoff])
+        var meanPayoff = runningSum / numPaths;
+
+        // Discount the average payoff back to time 0 using the risk-free rate
+        // Price = e^(-rT) * meanPayoff
+        var discountedMean = meanPayoff * Math.exp(-r * expiry);
+
+        return discountedMean;
     }
-        
+
 
     public static void main(String[] args) {
         var expiry = 0.5;
@@ -37,6 +72,7 @@ public class App {
         var vol = 0.2;
         var r = 0.05;
         var numPaths = 100000;
+        // Note: The App class needs instantiation to call the non-static simpleMonteCarlo1 method.
         System.out.println(new App().simpleMonteCarlo1(expiry, strike, spot, vol, r, numPaths));
     }
 }
