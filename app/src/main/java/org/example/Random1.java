@@ -1,6 +1,7 @@
 package org.example;
 
 public class Random1 {
+
     public static double getGaussianBySummation() {
         double x = 0;
         for (int i = 0; i < 12; i++) {
@@ -21,6 +22,5 @@ public class Random1 {
         } while (euclidSquare >= 1.0);
 
         return x * Math.sqrt(-2.0 * Math.log(euclidSquare) / euclidSquare);
-        
     }
 }

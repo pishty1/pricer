@@ -4,25 +4,42 @@
 package org.example;
 
 import org.junit.Test;
-import static org.junit.Assert.*;
+import static org.mockito.Mockito.when;
 
+import org.example.PayOff.OptionsType;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
+
+import org.junit.runner.RunWith;
+
+@RunWith(MockitoJUnitRunner.class)
 public class AppTest {
-    @Test public void appHasAGreeting() {
-        App classUnderTest = new App();
-        assertNotNull("app should have a greeting", classUnderTest.getGreeting());
-    }
+
+    @Mock
+    private Random1 random1;
+
+    @InjectMocks
+    private App app;
+
 
     @Test
     public void testSimpleMonteCarlo1() {
-        var classUnderTest = new App();
-        var expiry = 0.5;
-        var strike = 100;
-        var spot = 100;
-        var vol = 0.2;
-        var r = 0.05;
-        var numPaths = 100000;
-        var result = classUnderTest.simpleMonteCarlo1(expiry, strike, spot, vol, r, numPaths);
-        // assertEquals(result, 100, 0.01);
-        System.out.println(result);
+        // app = new App();
+
+        try (MockedStatic<Random1> rand1 = Mockito.mockStatic(Random1.class)) {
+            rand1.when(Random1::getGaussianBySummation).thenReturn(0.5);
+            var expiry = 0.5;
+            var strike = 100;
+            var spot = 100;
+            var vol = 0.2;
+            var r =0.05;
+            var numPaths = 100000;
+            var result = app.simpleMonteCarlo1(expiry, strike, spot, vol, r, numPaths, new PayOff(OptionsType.CALL, strike));
+            // assertEquals(result, 100, 0.01);
+            System.out.println(result);
+        }
     }
 }

@@ -3,6 +3,8 @@
  */
 package org.example;
 
+import org.example.PayOff.OptionsType;
+
 public class App {
     /**
      * Prices a European call option using a simple Monte Carlo simulation.
@@ -22,7 +24,7 @@ public class App {
      * @param numPaths   Number of simulation paths
      * @return The estimated price of the European call option.
      */
-    public double simpleMonteCarlo1(double expiry, double strike, double spot, double vol, double r, long numPaths) {
+    public double simpleMonteCarlo1(double expiry, double strike, double spot, double vol, double r, long numPaths, PayOff payoff) {
         // Pre-calculate constant values to improve performance inside the loop.
         // variance = sigma^2 * T
         var variance = vol * vol * expiry;
@@ -48,8 +50,8 @@ public class App {
             thisSpot = movedSpot * Math.exp(rootVariance * thisGaussian);
 
             // Calculate the payoff for this path: max(ST - K, 0)
-            double thisPayoff = Math.max(thisSpot - strike, 0);
-
+            // double thisPayoff = Math.max(thisSpot - strike, 0);
+            double thisPayoff = payoff.getPayoff(thisSpot);
             // Add the payoff to the running sum
             runningSum += thisPayoff;
         }
@@ -72,7 +74,10 @@ public class App {
         var vol = 0.2;
         var r = 0.05;
         var numPaths = 100000;
-        // Note: The App class needs instantiation to call the non-static simpleMonteCarlo1 method.
-        System.out.println(new App().simpleMonteCarlo1(expiry, strike, spot, vol, r, numPaths));
+        var payoff = new PayOff(OptionsType.CALL, strike);
+        System.out.println(new App().simpleMonteCarlo1(expiry, strike, spot, vol, r, numPaths, payoff));
+
+
+        // var payoffDoubleDigital = new PayOff(strikeUpper, strikeLower);
     }
 }
